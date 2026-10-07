@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PocketBase vs n8n для автоматизации обменов</title>
+    <style>
+      :root {
+        --bg: #f5efe6;
+        --paper: rgba(255, 252, 247, 0.9);
+        --surface: #fffaf2;
+        --ink: #181512;
+        --muted: #5d554d;
+        --line: rgba(24, 21, 18, 0.12);
+        --accent: #d46224;
+        --accent-soft: rgba(212, 98, 36, 0.12);
+        --teal: #116b65;
+        --teal-soft: rgba(17, 107, 101, 0.12);
+        --ok: #1e7c45;
+        --warn: #b36b00;
+        --bad: #b42318;
+        --shadow: 0 24px 80px rgba(49, 34, 18, 0.08);
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+        --radius-md: 16px;
+        --content: 1180px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font: 16px/1.65 Arial, sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(212, 98, 36, 0.12), transparent 28%),
+          radial-gradient(circle at 80% 0%, rgba(17, 107, 101, 0.08), transparent 24%),
+          linear-gradient(180deg, #f8f3ec 0%, #f1e8dc 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(24, 21, 18, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(24, 21, 18, 0.02) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent 92%);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page {
+        width: min(calc(100% - 32px), var(--content));
+        margin: 0 auto;
+        padding: 28px 0 72px;
+        position: relative;
+      }
+
+      .hero,
+      .section-card,
+      .table-shell,
+      .note {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        background: var(--paper);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .hero {
+        padding: 34px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3 {
+        line-height: 1.12;
+        margin: 0 0 14px;
+      }
+
+      h1 {
+        font-size: clamp(34px, 5vw, 56px);
+        max-width: 13ch;
+        margin-top: 16px;
+      }
+
+      h2 {
+        font-size: clamp(26px, 3vw, 38px);
+      }
+
+      h3 {
+        font-size: 22px;
+      }
+
+      p {
+        margin: 0 0 14px;
+      }
+
+      .lead {
+        font-size: 19px;
+        max-width: 900px;
+        color: #2b2723;
+      }
+
+      .summary {
+        display: inline-block;
+        margin-top: 10px;
+        padding: 14px 18px;
+        border-radius: 18px;
+        background: #161512;
+        color: #fffaf4;
+        font-weight: 700;
+      }
+
+      .section {
+        margin-top: 28px;
+      }
+
+      .section-card {
+        padding: 28px;
+      }
+
+      .grid-2,
+      .grid-3 {
+        display: grid;
+        gap: 18px;
+      }
+
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .mini-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        padding: 22px;
+      }
+
+      .pill {
+        display: inline-block;
+        margin-bottom: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+      }
+
+      .pill-pocketbase {
+        background: rgba(30, 124, 69, 0.12);
+        color: var(--ok);
+      }
+
+      .pill-n8n {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .pill-hybrid {
+        background: var(--teal-soft);
+        color: var(--teal);
+      }
+
+      .diagram {
+        margin-top: 14px;
+        padding: 16px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, #fffdf9 0%, #f8f2e8 100%);
+        overflow: auto;
+      }
+
+      .table-shell {
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f9f3ea;
+        font-size: 14px;
+      }
+
+      ul,
+      ol {
+        margin: 0;
+        padding-left: 22px;
+      }
+
+      li + li {
+        margin-top: 8px;
+      }
+
+      .score-good {
+        color: var(--ok);
+        font-weight: 700;
+      }
+
+      .score-mid {
+        color: var(--warn);
+        font-weight: 700;
+      }
+
+      .score-bad {
+        color: var(--bad);
+        font-weight: 700;
+      }
+
+      .note {
+        padding: 22px 24px;
+        border-left: 6px solid var(--accent);
+      }
+
+      .steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        counter-reset: step;
+      }
+
+      .steps li {
+        position: relative;
+        margin-bottom: 12px;
+        padding: 18px 18px 18px 58px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+      }
+
+      .steps li::before {
+        counter-increment: step;
+        content: counter(step);
+        position: absolute;
+        left: 16px;
+        top: 16px;
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .footer {
+        margin-top: 22px;
+        color: var(--muted);
+      }
+
+      @media (max-width: 920px) {
+        .grid-2,
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+
+        .hero,
+        .section-card {
+          padding: 22px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <span class="eyebrow">Максимально разжеванное объяснение</span>
+        <h1>PocketBase vs n8n для автоматизации обменов, остатков, цен и фидов</h1>
+        <p class="lead">
+          Если объяснить без инженерной романтики: <strong>PocketBase</strong> лучше там,
+          где у тебя есть свои данные, свои статусы, свои ошибки, свои повторные попытки и
+          сложная логика по товарам. <strong>n8n</strong> лучше там, где нужно быстро связать
+          webhook, CRM, Telegram, email, API и внешние сервисы в одну цепочку.
+        </p>
+        <div class="summary">
+          Для каталога, цен, остатков, фидов и обменов с 1С или МойСклад PocketBase-подход
+          обычно архитектурно сильнее, чем n8n-only.
+        </div>
+      </section>
+
+      <section class="section grid-3">
+        <article class="mini-card">
+          <span class="pill pill-pocketbase">PocketBase</span>
+          <h3>Что это</h3>
+          <p>Маленький backend с БД, API, auth, hooks и cron-задачами.</p>
+          <p>Подходит, когда автоматизация крутится вокруг твоих сущностей и твоей логики.</p>
+        </article>
+        <article class="mini-card">
+          <span class="pill pill-n8n">n8n</span>
+          <h3>Что это</h3>
+          <p>Workflow-оркестратор с визуальной сборкой сценариев.</p>
+          <p>Подходит, когда нужно быстро связать внешние сервисы и API.</p>
+        </article>
+        <article class="mini-card">
+          <span class="pill pill-hybrid">Гибрид</span>
+          <h3>Что часто лучше</h3>
+          <p>PocketBase как ядро данных и состояния.</p>
+          <p>n8n как внешний orchestration layer для webhook и SaaS.</p>
+        </article>
+      </section>
+
+      <section class="section">
+        <div class="section-card">
+          <h2>Главная разница по-человечески</h2>
+          <p>
+            <strong>n8n</strong> хорошо отвечает на вопрос: что сделать после события.
+            <strong>PocketBase</strong> хорошо отвечает на вопрос: в каком состоянии сейчас система,
+            что уже обработано, что упало, что нужно повторить и что именно произошло с каждым SKU.
+          </p>
+          <div class="diagram">
+            <svg width="1080" height="270" viewBox="0 0 1080 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Сравнение n8n и PocketBase">
+              <rect x="20" y="36" width="480" height="180" rx="28" fill="#fff0e7" stroke="#d8c9bc"/>
+              <text x="52" y="78" font-size="30" font-family="Arial" fill="#d46224" font-weight="700">n8n</text>
+              <text x="52" y="116" font-size="18" font-family="Arial" fill="#222">Событие → шаг → еще шаг → API → уведомление</text>
+              <text x="52" y="146" font-size="18" font-family="Arial" fill="#222">Быстро, наглядно, удобно для glue-логики</text>
+              <text x="52" y="176" font-size="18" font-family="Arial" fill="#222">Становится хрупким, когда много состояния и сложных исключений</text>
+              <text x="52" y="206" font-size="18" font-family="Arial" fill="#222">Лучше для интеграций между сервисами, чем для ядра каталога</text>
+
+              <rect x="580" y="36" width="480" height="180" rx="28" fill="#eaf6f0" stroke="#c5d8d1"/>
+              <text x="612" y="78" font-size="30" font-family="Arial" fill="#1e7c45" font-weight="700">PocketBase</text>
+              <text x="612" y="116" font-size="18" font-family="Arial" fill="#222">Сущности → jobs → sync runs → item errors → feed exports</text>
+              <text x="612" y="146" font-size="18" font-family="Arial" fill="#222">Чуть дольше старт, зато лучше контроль данных и ошибок</text>
+              <text x="612" y="176" font-size="18" font-family="Arial" fill="#222">Сильнее для цен, остатков, фидов и повторной обработки</text>
+              <text x="612" y="206" font-size="18" font-family="Arial" fill="#222">Ближе к интеграционному приложению, а не к конструктору сценариев</text>
+
+              <line x1="500" y1="126" x2="580" y2="126" stroke="#7f766d" stroke-width="3" stroke-dasharray="10 8"/>
+              <text x="516" y="108" font-size="16" font-family="Arial" fill="#555">выбор</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-card table-shell">
+          <h2>Сравнение по важным критериям</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Критерий</th>
+                <th>PocketBase</th>
+                <th>n8n</th>
+                <th>Что это значит на практике</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Своя модель данных</td>
+                <td><span class="score-good">Сильная сторона</span></td>
+                <td><span class="score-mid">Вторично</span></td>
+                <td>Товары, склады, типы цен, ошибки, статусы и история запусков естественно живут в PocketBase.</td>
+              </tr>
+              <tr>
+                <td>Визуальная сборка</td>
+                <td><span class="score-bad">Почти нет</span></td>
+                <td><span class="score-good">Сильная сторона</span></td>
+                <td>n8n проще показать клиенту и быстрее собрать как цепочку из нод.</td>
+              </tr>
+              <tr>
+                <td>Сложная бизнес-логика</td>
+                <td><span class="score-good">Обычно лучше</span></td>
+                <td><span class="score-mid">Нормально до определенного порога</span></td>
+                <td>Когда начинается много ветвлений, исключений и специальных кейсов, код возле данных устойчивее.</td>
+              </tr>
+              <tr>
+                <td>Повторная обработка</td>
+                <td><span class="score-good">Лучше</span></td>
+                <td><span class="score-mid">Можно, но сложнее поддерживать</span></td>
+                <td>В PocketBase проще хранить item-level ошибки и делать retry только по проблемным SKU.</td>
+              </tr>
+              <tr>
+                <td>Интеграции с SaaS</td>
+                <td><span class="score-mid">Чаще руками</span></td>
+                <td><span class="score-good">Обычно лучше</span></td>
+                <td>n8n быстрее, если нужно связать webhook, CRM, формы, email, Telegram и внешние API.</td>
+              </tr>
+              <tr>
+                <td>Каталог, цены, остатки, фиды</td>
+                <td><span class="score-good">Лучше</span></td>
+                <td><span class="score-mid">Подходит только для умеренной сложности</span></td>
+                <td>Это задачи про состояние и журналирование, а не только про переход между шагами.</td>
+              </tr>
+              <tr>
+                <td>Скорость MVP</td>
+                <td><span class="score-mid">Зависит от опыта</span></td>
+                <td><span class="score-good">Чаще быстрее</span></td>
+                <td>Для черновой интеграции нескольких сервисов n8n часто выигрывает по времени.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section grid-2">
+        <article class="section-card">
+          <h2>Когда PocketBase лучше</h2>
+          <ul>
+            <li>Нужно хранить товары, склады, цены, остатки, источники и историю синхронизаций.</li>
+            <li>Нужны jobs, статусы, повторные попытки и журнал ошибок по SKU.</li>
+            <li>Есть промежуточная нормализация перед формированием фида или публикацией в KIT.</li>
+            <li>Нужно контролировать частичные ошибки и делать дозаливку только проблемных позиций.</li>
+            <li>Интеграция больше похожа на внутренний backend, чем на no-code автоматизацию.</li>
+          </ul>
+        </article>
+        <article class="section-card">
+          <h2>Когда n8n лучше</h2>
+          <ul>
+            <li>Нужно быстро склеить webhook, CRM, уведомления, формы и внешние API.</li>
+            <li>Нужна визуальная схема процесса.</li>
+            <li>Логика не слишком тяжелая, а данные не требуют сложной модели состояний.</li>
+            <li>Важнее быстрое внедрение, чем идеальный слой доменных сущностей.</li>
+            <li>Нужно много готовых коннекторов из коробки.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="section">
+        <div class="section-card">
+          <h2>Почему для обменов цен и остатков PocketBase обычно удобнее</h2>
+          <p>
+            Обмен цен и остатков это почти всегда не просто событие, а состояние системы. Мало знать,
+            что процесс стартовал. Нужно понимать, сколько позиций обработано, какие упали, почему упали,
+            как их повторить и можно ли сделать это безопасно.
+          </p>
+          <ul>
+            <li>Какой источник был у запуска.</li>
+            <li>Сколько было товаров в пакете.</li>
+            <li>Сколько реально обновилось.</li>
+            <li>Какие SKU не прошли и по какой причине.</li>
+            <li>Что нужно повторить: весь запуск или только проблемную часть.</li>
+          </ul>
+          <p>
+            В PocketBase это естественно выражается через коллекции и статусы. В n8n это обычно приходится
+            достраивать вокруг workflow.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-card">
+          <h2>Нормальная модель в PocketBase</h2>
+          <ol class="steps">
+            <li>
+              <strong>integration_sources</strong>. Источники данных: 1С, МойСклад, YML, поставщик, API.
+            </li>
+            <li>
+              <strong>jobs</strong>. Очередь фоновых задач: import_catalog, sync_prices, sync_stocks, build_feed.
+            </li>
+            <li>
+              <strong>sync_runs</strong>. Конкретные запуски, где видно итог и прогресс.
+            </li>
+            <li>
+              <strong>sync_item_results</strong>. Результаты по каждой позиции, чтобы можно было делать retry по SKU.
+            </li>
+            <li>
+              <strong>products</strong>. Нормализованный каталог в своем внутреннем виде.
+            </li>
+            <li>
+              <strong>feed_exports</strong>. Журнал собранных фидов и их статусов.
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-card">
+          <h2>Схема архитектуры на картинке</h2>
+          <div class="diagram">
+            <svg width="1100" height="380" viewBox="0 0 1100 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Архитектура PocketBase для обменов">
+              <rect x="30" y="44" width="190" height="74" rx="20" fill="#fff0e7" stroke="#d8c9bc"/>
+              <text x="70" y="88" font-size="24" font-family="Arial" font-weight="700" fill="#d46224">1С / МойСклад</text>
+
+              <rect x="30" y="168" width="190" height="74" rx="20" fill="#fff0e7" stroke="#d8c9bc"/>
+              <text x="54" y="212" font-size="24" font-family="Arial" font-weight="700" fill="#d46224">Поставщик / YML</text>
+
+              <rect x="286" y="36" width="260" height="92" rx="24" fill="#eaf6f0" stroke="#c5d8d1"/>
+              <text x="354" y="78" font-size="30" font-family="Arial" font-weight="700" fill="#1e7c45">PocketBase</text>
+              <text x="320" y="108" font-size="18" font-family="Arial" fill="#222">коллекции, сущности, статусы, журнал</text>
+
+              <rect x="286" y="160" width="260" height="90" rx="24" fill="#f9f5ed" stroke="#d8cfbf"/>
+              <text x="336" y="202" font-size="28" font-family="Arial" font-weight="700" fill="#333">Jobs / Sync Runs</text>
+              <text x="334" y="230" font-size="18" font-family="Arial" fill="#222">очередь, результаты, retry, item errors</text>
+
+              <rect x="610" y="44" width="220" height="74" rx="20" fill="#ecf7f6" stroke="#c5d8d1"/>
+              <text x="676" y="88" font-size="28" font-family="Arial" font-weight="700" fill="#116b65">Worker</text>
+
+              <rect x="610" y="168" width="220" height="74" rx="20" fill="#ecf7f6" stroke="#c5d8d1"/>
+              <text x="640" y="212" font-size="24" font-family="Arial" font-weight="700" fill="#116b65">Feed Builder / Push</text>
+
+              <rect x="890" y="44" width="180" height="74" rx="20" fill="#fff0e7" stroke="#d8c9bc"/>
+              <text x="928" y="88" font-size="24" font-family="Arial" font-weight="700" fill="#d46224">Яндекс KIT</text>
+
+              <rect x="890" y="168" width="180" height="74" rx="20" fill="#fff0e7" stroke="#d8c9bc"/>
+              <text x="932" y="212" font-size="24" font-family="Arial" font-weight="700" fill="#d46224">YML Feed</text>
+
+              <line x1="220" y1="82" x2="286" y2="82" stroke="#746c64" stroke-width="3"/>
+              <line x1="220" y1="206" x2="286" y2="206" stroke="#746c64" stroke-width="3"/>
+              <line x1="546" y1="82" x2="610" y2="82" stroke="#746c64" stroke-width="3"/>
+              <line x1="546" y1="206" x2="610" y2="206" stroke="#746c64" stroke-width="3"/>
+              <line x1="830" y1="82" x2="890" y2="82" stroke="#746c64" stroke-width="3"/>
+              <line x1="830" y1="206" x2="890" y2="206" stroke="#746c64" stroke-width="3"/>
+
+              <text x="286" y="310" font-size="24" font-family="Arial" font-weight="700" fill="#222">Смысл схемы:</text>
+              <text x="286" y="340" font-size="18" font-family="Arial" fill="#222">данные и состояние хранятся в PocketBase, тяжелая обработка идет в worker,</text>
+              <text x="286" y="364" font-size="18" font-family="Arial" fill="#222">а публикация и внешняя интеграция уже идут в KIT, YML и другие сервисы.</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="section grid-3">
+        <article class="section-card">
+          <h2>Вариант 1. PocketBase-only</h2>
+          <p>Подходит, если проект небольшой или средний, а архитектуру хочется держать компактной.</p>
+          <ul>
+            <li>Плюс: максимум контроля и простая логика владения данными.</li>
+            <li>Минус: интеграции с внешними сервисами чаще пишутся руками.</li>
+          </ul>
+        </article>
+        <article class="section-card">
+          <h2>Вариант 2. PocketBase + worker</h2>
+          <p>Лучший практичный вариант для каталога, цен, остатков, фидов и массовых обменов.</p>
+          <ul>
+            <li>Плюс: тяжелая обработка не живет внутри hooks и cron.</li>
+            <li>Минус: чуть сложнее деплой и мониторинг.</li>
+          </ul>
+        </article>
+        <article class="section-card">
+          <h2>Вариант 3. PocketBase + n8n</h2>
+          <p>Хорошо, если нужны и свои статусы данных, и быстрые SaaS-интеграции.</p>
+          <ul>
+            <li>Плюс: данные и retry-модель в PocketBase, webhook и glue-логика в n8n.</li>
+            <li>Минус: две системы, которые надо держать в порядке.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="section">
+        <div class="note">
+          <h2>Простой вывод</h2>
+          <p>Если автоматизация крутится вокруг каталога, цен, остатков, маппинга и фидов, PocketBase как основа обычно лучше.</p>
+          <p>Если автоматизация крутится вокруг webhook, CRM, форм, уведомлений и быстрых связок между сервисами, n8n удобнее.</p>
+          <p><strong>Самый здравый production-вариант:</strong> PocketBase как доменное ядро, worker для тяжелой обработки, n8n только как дополнительный orchestration layer.</p>
+        </div>
+      </section>
+
+      <p class="footer">
+        Этот документ специально сделан максимально наглядным и прямолинейным, чтобы его можно было
+        показывать клиенту, партнеру или использовать как внутреннюю пояснялку.
+      </p>
+    </main>
+  </body>
+</html>

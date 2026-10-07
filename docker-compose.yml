@@ -1,0 +1,9 @@
+services:
+  kit-site:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kit-site
+    ports:
+      - "8101:80"
+    restart: unless-stopped
