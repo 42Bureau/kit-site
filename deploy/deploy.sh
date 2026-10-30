@@ -33,25 +33,34 @@ loud_fail() {
   printf '============================================================\n' >&2
 }
 
+start_if_stopped() {
+  docker container inspect "$container_name" >/dev/null 2>&1 || return 0
+  if [ "$(docker inspect --format '{{.State.Running}}' "$container_name")" = "true" ]; then
+    return 0
+  fi
+  current_image="$(docker inspect --format '{{.Image}}' "$container_name")"
+  if [ -f "$failed_marker" ] && grep -qF "image=$current_image" "$failed_marker" 2>/dev/null; then
+    return 0
+  fi
+  printf '%s %s is stopped and no failed deploy is recorded, starting it\n' "$(date -Is)" "$container_name" >&2
+  docker start "$container_name" >/dev/null 2>&1 || true
+}
+
 exec 9>"$root_dir/.deploy.lock"
 if ! flock -n 9; then
   printf '%s another deploy holds %s, skipping\n' "$(date -Is)" "$root_dir/.deploy.lock" >&2
   exit 75
 fi
 
-for attempt in $(seq 1 3); do
+for attempt in $(seq 1 6); do
   if docker pull "$image_name:latest" >/dev/null 2>&1; then
     break
   fi
-  if [ "$attempt" -lt 3 ]; then
-    sleep 5
+  if [ "$attempt" -lt 6 ]; then
+    sleep 10
   else
-    printf '\n============================================================\n' >&2
-    printf 'DEPLOY FAILED (pull) image=%s:latest\n' "$image_name" >&2
-    printf 'stopping %s as a failure signal; connect and check deploy.log\n' "$container_name" >&2
-    docker stop --time 10 "$container_name" >/dev/null 2>&1 || true
-    printf 'cron will retry the pull on the next tick; the container stays stopped until it succeeds\n' >&2
-    printf '============================================================\n' >&2
+    printf '%s PULL FAILED image=%s:latest (registry unreachable?): %s is left as it is, cron will retry\n' "$(date -Is)" "$image_name" "$container_name" >&2
+    start_if_stopped
     exit 1
   fi
 done
@@ -67,6 +76,19 @@ if [ "${FORCE_DEPLOY:-0}" != "1" ] && [ -n "$running_image" ] && [ "$running_ima
   if [ -f "$failed_marker" ] && grep -qF "image=$target_image" "$failed_marker" 2>/dev/null; then
     printf '%s DEPLOY FAILED EARLIER (%s). Service may be stopped. Push a fix or run FORCE_DEPLOY=1.\n' "$(date -Is)" "$target_image" >&2
     exit 3
+  fi
+  if [ "$(docker inspect --format '{{.State.Running}}' "$container_name")" != "true" ]; then
+    printf '%s %s has the current image but is stopped and no failed deploy is recorded, starting it\n' "$(date -Is)" "$container_name"
+    docker start "$container_name" >/dev/null
+    for attempt in $(seq 1 90); do
+      if curl -fsS --max-time 3 "$health_url" >/dev/null 2>&1; then
+        printf '%s started, healthy image=%s\n' "$(date -Is)" "$target_image"
+        exit 0
+      fi
+      sleep 2
+    done
+    printf '%s started %s but the health check did not pass, will look again on the next tick\n' "$(date -Is)" "$container_name" >&2
+    exit 1
   fi
   printf '%s up to date, %s already runs %s\n' "$(date -Is)" "$container_name" "$target_image"
   exit 0
