@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 root_dir="/home/denisakimov/docker/kit_site"
-repo_dir="$root_dir/repo"
+repo_dir="${DEPLOY_REPO_DIR:-$root_dir/repo}"
 compose_file="$repo_dir/deploy/compose.prod.yaml"
 project_name="kit"
 container_name="kit-site"
